@@ -3,6 +3,8 @@ import random
 from environment import Agent, Environment
 from planner import RoutePlanner
 from simulator import Simulator
+import pandas as pd
+import sys
 
 class LearningAgent(Agent):
     """An agent that learns to drive in the smartcab world.
@@ -27,7 +29,10 @@ class LearningAgent(Agent):
         self.q_values = {}  # Q dictionary of states/actions
         self.learning_rate = 0.5
         self.discount_rate = 0.05
-        self.epsilon = 0.1
+        self.epsilon = 0.01
+        self.penalty = 0
+        self.total_reward = 0  
+        self.err_time = 0
         
     def reset(self, destination=None):
         self.planner.route_to(destination)
@@ -44,16 +49,24 @@ class LearningAgent(Agent):
         self.state = self.next_state(inputs)
         # TODO: Select action according to your policy
         #action = random.choice([None, 'forward', 'left', 'right']) #for random action
-        action = self.epsilon_greedy(self.state, self.epsilon)
+        #action = self.policy(self.state)
+        
+        action = self.epsilon_greedy(self.state, self.epsilon, t)
+        
         
         # Execute action and get reward
         reward = self.env.act(self, action)
-
+        if (reward < 0):
+            self.penalty += 1
+            self.err_time = t
+        self.total_reward += reward
+        
         # TODO: Learn policy based on state, action, reward
         self.q_update(self.state, action, reward)
         
         #print "LearningAgent.update(): deadline = {}, inputs = {}, action = {}, reward = {}".format(deadline, inputs, action, reward)  # [debug]
-    
+            
+            
     def q_state(self, state, action):
         ''' States/actions : light(2), oncoming(4), left(4), direction(4) and action(4)'''
         
@@ -100,35 +113,26 @@ class LearningAgent(Agent):
             if self.q(state,action) > q_best:
                 q_best = self.q(state, action)
                 best_action = action
+            if self.q(state, action) == q_best:
+                best_action = random.choice([best_action, action])
         return best_action
     
-    def epsilon_greedy(self, state, epsilon):
-        if random.random() < epsilon:
+    def epsilon_greedy(self, state, epsilon, t):
+        ''' As time passes the agent do less and less exploration and follow policy'''
+        if random.random() < epsilon/(exp(t)+15):
             return random.choice(self.valid_actions)
         else:
             return self.policy(state)
             
-#    def policy(self, state):
-#        '''Simple policy which allow to increase Q based on (state, action)'''
-#
-#        best_action = None
-#        q_best = 0 
-#        for action in self.valid_actions:
-#            if self.q(state, action) > q_best:
-#                q_best = self.q(state, action)
-#                best_action = action
-#            if self.q(state, action) == q_best:
-#                best_action = random.choice([best_action, action])
-#        return best_action
-          
-          
 def run():
-    start = time.clock()
-    '''Run the agent for a finite number of trials'''    
-    n_values = [1, 10, 100, 1000, 10000]
+    '''Run the agent for a finite number of trials''' 
     goal = []
-    penalties = []  
-    for n_trials in n_values:
+    penalties = []
+    rewards = []
+    n = [10, 100, 1000]
+    i = 0
+    for n_trials in n:
+        start = time.clock()
         e = Environment()  # create environment (also adds some dummy traffic)
         a = e.create_agent(LearningAgent)  # create agent
         e.set_primary_agent(a, enforce_deadline=True)  # specify agent to track
@@ -137,11 +141,24 @@ def run():
         sim = Simulator(e, update_delay=0, display=False)
         sim.run(n_trials)  # run for a specified number of trials
         goal.append(e.sucess)
-        penalties.append(e.penalty)
-        print "Reached the goal in {} cases out of {} trials with {} penalties".format(goal, n_values, penalties)
-    stop = time.clock()
-    print stop - start
+        penalties.append(a.penalty)
+        rewards.append(a.total_reward)
+        print "Reached the goal in {} cases out of {} trials with {} penalties and reward sum {} at a time {} and last err time {}" \
+        .format(goal[i], n_trials, penalties[i], rewards[i], e.t, a.err_time )
+        penalty_rate = float(penalties[i])/n_trials
+        print "Penalties rate = {}".format(penalty_rate)
+        stop = time.clock()
+        i +=1
+        print "Time to calculate = {}".format(stop - start)
     # NOTE: To quit midway, press Esc or close pygame window, or hit Ctrl+C on the command-line
 
 if __name__ == '__main__':
     run()
+#    results = []
+#    for i in range(100):
+#        sim_results = run()
+#        results.append(sim_results)
+#    df = pd.DataFrame(results)
+#    df.columns = ['Q_new']
+#    print df.describe()
+#    #df.to_csv('results_ups.csv')
