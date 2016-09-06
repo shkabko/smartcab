@@ -27,6 +27,7 @@ class LearningAgent(Agent):
         self.q_values = {}  # Q dictionary of states/actions
         self.learning_rate = 0.5
         self.discount_rate = 0.05
+        self.epsilon = 0.1
         
     def reset(self, destination=None):
         self.planner.route_to(destination)
@@ -43,7 +44,7 @@ class LearningAgent(Agent):
         self.state = self.next_state(inputs)
         # TODO: Select action according to your policy
         #action = random.choice([None, 'forward', 'left', 'right']) #for random action
-        action = self.policy(self.state)
+        action = self.epsilon_greedy(self.state, self.epsilon)
         
         # Execute action and get reward
         reward = self.env.act(self, action)
@@ -81,7 +82,7 @@ class LearningAgent(Agent):
         #Q(state, action) =  Q(state, action) + alpha(time) * (r + gamma * Q_max(next_state, all_action) - Q(state, action))
         q_new = q_current + self.learning_rate*(reward + self.discount_rate * self.q_max(new_state) - q_current)
         self.q_values[key] = q_new
-        print "Q_new: {} | key: {} | Q_max: {} q_current {}".format(q_new, key, self.q_max(new_state), q_current)
+        #print "Q_new: {} | key: {} | Q_max: {} q_current {}".format(q_new, key, self.q_max(new_state), q_current)
           
     def q_max(self,state):
         '''Choose q_max from all possible actions'''
@@ -92,23 +93,39 @@ class LearningAgent(Agent):
         return max
     
     def policy(self, state):
-        '''Simple policy which allow to increase Q based on (state, action)'''
-
+        
         best_action = None
-        q_best = 0 
+        q_best = 0
         for action in self.valid_actions:
-            
-            if self.q(state, action) > q_best:
+            if self.q(state,action) > q_best:
                 q_best = self.q(state, action)
                 best_action = action
-            if self.q(state, action) == q_best:
-                best_action = random.choice([best_action, action])
         return best_action
+    
+    def epsilon_greedy(self, state, epsilon):
+        if random.random() < epsilon:
+            return random.choice(self.valid_actions)
+        else:
+            return self.policy(state)
+            
+#    def policy(self, state):
+#        '''Simple policy which allow to increase Q based on (state, action)'''
+#
+#        best_action = None
+#        q_best = 0 
+#        for action in self.valid_actions:
+#            if self.q(state, action) > q_best:
+#                q_best = self.q(state, action)
+#                best_action = action
+#            if self.q(state, action) == q_best:
+#                best_action = random.choice([best_action, action])
+#        return best_action
+          
           
 def run():
     start = time.clock()
     '''Run the agent for a finite number of trials'''    
-    n_values = [1, 10, 100, 1000]
+    n_values = [1, 10, 100, 1000, 10000]
     goal = []
     penalties = []  
     for n_trials in n_values:

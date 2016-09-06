@@ -31,7 +31,7 @@ class Environment(object):
     valid_headings = [(1, 0), (0, -1), (-1, 0), (0, 1)]  # ENWS
     hard_time_limit = -100  # even if enforce_deadline is False, end trial when deadline reaches this value (to avoid deadlocks)
 
-    def __init__(self, num_dummies=3):
+    def __init__(self, num_dummies=30):
         self.num_dummies = num_dummies  # no. of dummy agents
         
         # Initialize simulation variables
@@ -205,7 +205,7 @@ class Environment(object):
                     reward = 2.0 
                 else:
                     reward = -0.5
-                    #self.penalty +=1 # valid, but is it correct? (as per waypoint)
+                    self.penalty +=1 # valid, but is it correct? (as per waypoint)
             else:
                 # Valid null move
                 reward = 0.0
