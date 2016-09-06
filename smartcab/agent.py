@@ -97,11 +97,11 @@ class LearningAgent(Agent):
         best_action = None
         q_best = 0 
         for action in self.valid_actions:
-            q_current = self.q(state, action)
-            if q_current > q_best:
-                q_best = q_current
+            
+            if self.q(state, action) > q_best:
+                q_best = self.q(state, action)
                 best_action = action
-            if q_current == q_best:
+            if self.q(state, action) == q_best:
                 best_action = random.choice([best_action, action])
         return best_action
           
