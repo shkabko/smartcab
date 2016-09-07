@@ -4,7 +4,9 @@ from environment import Agent, Environment
 from planner import RoutePlanner
 from simulator import Simulator
 import pandas as pd
-import sys
+import matplotlib.pyplot as plt
+import math
+
 
 class LearningAgent(Agent):
     """An agent that learns to drive in the smartcab world.
@@ -119,7 +121,7 @@ class LearningAgent(Agent):
     
     def epsilon_greedy(self, state, epsilon, t):
         ''' As time passes the agent do less and less exploration and follow policy'''
-        if random.random() < epsilon/(exp(t)+15):
+        if random.random() < epsilon/(math.exp(t)+15):
             return random.choice(self.valid_actions)
         else:
             return self.policy(state)
@@ -129,10 +131,13 @@ def run():
     goal = []
     penalties = []
     rewards = []
-    n = [10, 100, 1000]
+    penalty_rate = []
+    N = 15    
+    n = [pow(2,i) for i in xrange(N)]
     i = 0
+    start = time.clock()
     for n_trials in n:
-        start = time.clock()
+        #start = time.clock()
         e = Environment()  # create environment (also adds some dummy traffic)
         a = e.create_agent(LearningAgent)  # create agent
         e.set_primary_agent(a, enforce_deadline=True)  # specify agent to track
@@ -145,20 +150,21 @@ def run():
         rewards.append(a.total_reward)
         print "Reached the goal in {} cases out of {} trials with {} penalties and reward sum {} at a time {} and last err time {}" \
         .format(goal[i], n_trials, penalties[i], rewards[i], e.t, a.err_time )
-        penalty_rate = float(penalties[i])/n_trials
-        print "Penalties rate = {}".format(penalty_rate)
-        stop = time.clock()
+        penalty_rate.append(float(penalties[i])/n_trials)
+        print "Penalty rate = {}".format(penalty_rate)
         i +=1
-        print "Time to calculate = {}".format(stop - start)
-    # NOTE: To quit midway, press Esc or close pygame window, or hit Ctrl+C on the command-line
-
+        #print "Time to calculate = {}".format(stop - start)
+        # NOTE: To quit midway, press Esc or close pygame window, or hit Ctrl+C on the command-line
+        df = pd.DataFrame({'Penalty_per_trial':pd.Series(penalty_rate), '#Trials':pd.Series(n),})
+        print df
+        plt.plot(df['Penalty_per_trial'], df['#Trials'], '-o')
+        plt.yscale('log')       
+        plt.ylabel('#Trials')
+        plt.xlabel('Penalty per Trial')
+        plt.axis([-1, 10, -100, 20000])
+        plt.show()
+    stop = time.clock()
+    print "Time to calculate = {}".format(stop - start)
+        #df.to_csv('results.csv')
 if __name__ == '__main__':
     run()
-#    results = []
-#    for i in range(100):
-#        sim_results = run()
-#        results.append(sim_results)
-#    df = pd.DataFrame(results)
-#    df.columns = ['Q_new']
-#    print df.describe()
-#    #df.to_csv('results_ups.csv')
