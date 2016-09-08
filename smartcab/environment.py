@@ -31,7 +31,7 @@ class Environment(object):
     valid_headings = [(1, 0), (0, -1), (-1, 0), (0, 1)]  # ENWS
     hard_time_limit = -100  # even if enforce_deadline is False, end trial when deadline reaches this value (to avoid deadlocks)
 
-    def __init__(self, num_dummies=3):
+    def __init__(self, learning_rate=None, discount_rate=None, num_dummies=3):
         self.num_dummies = num_dummies  # no. of dummy agents
         
         # Initialize simulation variables
@@ -39,8 +39,9 @@ class Environment(object):
         self.t = 0
         self.agent_states = OrderedDict()
         self.status_text = ""
-        self.sucess = 0
-        self.penalty = 0
+        self.success = 0
+        self.learning_rate = learning_rate
+        self.discount_rate = discount_rate
 
         # Road network
         self.grid_size = (8, 6)  # (cols, rows)
@@ -204,22 +205,20 @@ class Environment(object):
                 if action == agent.get_next_waypoint():
                     reward = 2.0 
                 else:
-                    reward = -0.5
-                    #self.penalty +=1 # valid, but is it correct? (as per waypoint)
+                    reward = -0.5 # valid, but is it correct? (as per waypoint)
             else:
                 # Valid null move
                 reward = 0.0
         else:
             # Invalid move
             reward = -1.0
-            #self.penalty +=1
 
         if agent is self.primary_agent:
             if state['location'] == state['destination']:
                 if state['deadline'] >= 0:
                     reward += 10  # bonus
                 self.done = True
-                self.sucess += 1
+                self.success += 1
                 #print "Environment.act(): Primary agent has reached destination!"  # [debug]
             self.status_text = "state: {}\naction: {}\nreward: {}".format(agent.get_state(), action, reward)
             #print "Environment.act() [POST]: location: {}, heading: {}, action: {}, reward: {}".format(location, heading, action, reward)  # [debug]
