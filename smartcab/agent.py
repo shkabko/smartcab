@@ -31,12 +31,11 @@ class LearningAgent(Agent):
         self.q_values = {}  # Q dictionary of states/actions
         self.learning_rate = env.learning_rate
         self.discount_rate = env.discount_rate
-        #self.learning_rate = 0.5
-        #self.discount_rate = 0.05
         self.epsilon = 0.01
         self.penalty = 0
         self.total_reward = 0  
         self.err_time = 0
+        self.success = 0 
         
     def reset(self, destination=None):
         self.planner.route_to(destination)
@@ -63,10 +62,13 @@ class LearningAgent(Agent):
         self.total_reward += reward
         
         # TODO: Learn policy based on state, action, reward
-        self.q_update(self.state, action, reward, self.learning_rate, self.discount_rate)
+        self.q_update(self.state, action, reward)
         
         #print "LearningAgent.update(): deadline = {}, inputs = {}, action = {}, reward = {}".format(deadline, inputs, action, reward)  # [debug]
-        #print "LearningAgent.update_time(): time = {}".format(t)              
+        #print "LearningAgent.update_time(): time = {}".format(t) 
+        state = self.env.agent_states[self]
+        if state['location'] == state['destination']:
+            self.success +=1             
     
     def q_state(self, state, action):
         ''' States/actions : light(2), oncoming(4), left(4), direction(4) and action(4)'''
@@ -84,10 +86,8 @@ class LearningAgent(Agent):
         '''Next agent state with next_waypoint'''
         return {'light': inputs['light'], 'oncoming': inputs['oncoming'], 'left': inputs['left'], 'direction': self.next_waypoint}
         
-    def q_update(self, state, action, reward, learning_rate, discount_rate):
+    def q_update(self, state, action, reward):
         '''Update rule'''
-        self.learning_rate = learning_rate
-        self.discount_rate = discount_rate
         key=self.q_state(state, action)
         q_current = self.q(state, action)
         inputs = self.env.sense(self)
@@ -98,7 +98,7 @@ class LearningAgent(Agent):
         q_new = q_current + self.learning_rate*(reward + self.discount_rate * self.q_max(new_state) - q_current)
         self.q_values[key] = q_new
         #print "Q_new: {} | key: {} | Q_max: {} q_current {}".format(q_new, key, self.q_max(new_state), q_current)
-    
+        
     def q_max(self,state):
         '''Choose q_max from all possible actions'''
         max = -1000
@@ -132,7 +132,7 @@ def run(learning_rate, discount_rate):
     penalties = []
     rewards = []
     penalty_rate = []
-    N = 100    
+    N = 10    
 #    n = [pow(2,i) for i in xrange(N)]
 #    i = 0
     n = [100 for i in xrange(N)]
@@ -148,7 +148,7 @@ def run(learning_rate, discount_rate):
         # Now simulate it
         sim = Simulator(e, update_delay=0, display=False)
         sim.run(n_trials)  # run for a specified number of trials
-        goal.append(e.success)
+        goal.append(a.success)
         penalties.append(a.penalty)
         learning.append(a.learning_rate)
         discount.append(a.discount_rate)
