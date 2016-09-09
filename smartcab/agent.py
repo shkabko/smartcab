@@ -132,11 +132,14 @@ def run(learning_rate, discount_rate):
     penalties = []
     rewards = []
     penalty_rate = []
-    N = 13    
-    n = [pow(2,i) for i in xrange(N)]
-    i = 0
+    N = 100    
+#    n = [pow(2,i) for i in xrange(N)]
+#    i = 0
+    n = [100 for i in xrange(N)]
     learning = []
     discount = []
+    i = 0
+    mean_data = []    
     for n_trials in n:
         e = Environment(learning_rate, discount_rate)  # create environment (also adds some dummy traffic)
         a = e.create_agent(LearningAgent)  # create agent
@@ -150,10 +153,10 @@ def run(learning_rate, discount_rate):
         learning.append(a.learning_rate)
         discount.append(a.discount_rate)
         rewards.append(a.total_reward)
-        print "Reached the goal in {} cases out of {} trials with {} penalties and reward sum {} at a time {} and last err time {}" \
-        .format(goal[i], n_trials, penalties[i], rewards[i], e.t, a.err_time )
+#        print "Reached the goal in {} cases out of {} trials with {} penalties and reward sum {} at a time {} and last err time {}" \
+#        .format(goal[i], n_trials, penalties[i], rewards[i], e.t, a.err_time )
         penalty_rate.append(float(penalties[i])/n_trials)
-        print "Penalty rate = {}".format(penalty_rate)
+        #print "Penalty rate = {}".format(penalty_rate)
         i +=1
         # NOTE: To quit midway, press Esc or close pygame window, or hit Ctrl+C on the command-line
         df = pd.DataFrame({'Penalty_per_trial':pd.Series(penalty_rate), 
@@ -162,20 +165,23 @@ def run(learning_rate, discount_rate):
                            'Learning':pd.Series(learning), 
                            'Discount':pd.Series(discount),
                            })
-    print df
-    fig = plt.figure()
-    fig.suptitle('learning_rate={}, discount_rate={}, epsilon={}'.format(a.learning_rate, a.discount_rate, a.epsilon), fontsize=10)
-    plt.plot(df['Penalty_per_trial'], df['#Trials'], '-o')
-    plt.yscale('log')       
-    plt.ylabel('#Trials')
-    plt.xlabel('Penalty per Trial')
-    plt.axis([0, 10, -100, 6000])
-    plt.show() #debug
+        stat = df.describe()
+        mean_data = stat.loc['mean']
+    print mean_data
+#    fig = plt.figure()
+#    fig.suptitle('learning_rate={}, discount_rate={}, epsilon={}'.format(a.learning_rate, a.discount_rate, a.epsilon), fontsize=10)
+#    plt.plot(df['Penalty_per_trial'], df['#Trials'], '-o')
+#    plt.yscale('log')       
+#    plt.ylabel('#Trials')
+#    plt.xlabel('Penalty per Trial')
+#    plt.axis([0, 10, -100, 6000])
+#    plt.show() #debug
     #df.to_csv('results.csv')
 if __name__ == '__main__':
+    mean_data = []
     start = time.clock()
-    l_r = [0.5, 0.9]
-    d_r = [0.05, 0.5]
+    l_r = [0.1, 0.5, 0.9]
+    d_r = [0.05, 0.5, 0.9]
     for i in l_r:
         for j in d_r:
             run(i,j)
